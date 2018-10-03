@@ -5,10 +5,7 @@
  */
 package multicastordenado;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.net.Socket;
 import java.util.Scanner;
 
 /**
@@ -16,59 +13,47 @@ import java.util.Scanner;
  * @author Renato Correa
  */
 public class MulticastOrdenado {
-    
-    private static final int NUM_PROCESSES = 1;
+    private static Scanner scanner;
+    private static Node node;
 
     /**
      * @param args the command line arguments
+     * @throws java.io.IOException
      */
     public static void main(String[] args) throws IOException {
-        // Server
-        
-        int clock = 0;
-        
-        Scanner scanner = new Scanner(System.in);
+        // Read node id
         System.out.print("Id: ");
+        scanner = new Scanner(System.in);
         int id = scanner.nextInt();
         
-        ServerThread serverThread = new ServerThread(id);
-        serverThread.start();
+        // Initialize node
+        node = new Node(id);
         
+        // Initialize server first
+        node.initializeServer();
+        
+        // Wait for all servers to be initialized
         System.out.println("Esperando inicialização dos servidores.");
-        System.out.print("Digite algum número para continuar: ");
+        System.out.print("Digite qualquer número para continuar: ");
         scanner.nextInt();
         
-        // Clients
+        // Initialize clients
+        node.initializeClients();
         
-        Socket[] sockets = new Socket[NUM_PROCESSES];
-        for (int i = 0; i < NUM_PROCESSES; ++i)
-            sockets[i] = new Socket("localhost", 3031 + i);
-        
-        OutputStreamWriter[] streams = new OutputStreamWriter[NUM_PROCESSES];
-        for (int i = 0; i < NUM_PROCESSES; ++i)
-            streams[i] = new OutputStreamWriter(sockets[i].getOutputStream());
-        
-        BufferedWriter[] writers;
-        writers = new BufferedWriter[NUM_PROCESSES];
-        for (int i = 0; i < NUM_PROCESSES; ++i)
-            writers[i] = new BufferedWriter(streams[i]);
-        serverThread.writers = writers;
-        
-        while (true) {
-            synchronized (System.out) {
-                System.out.print("Mensagem: ");
-            }
-            String message = scanner.next();
-            
-            for (int i = 0; i < NUM_PROCESSES; ++i){
-                writers[i].write(message + "\n");
-                writers[i].write(Integer.toString(clock) + "\n"); // Enviar o tempo
-                writers[i].write(Integer.toString(id) + "\n"); // Enviar o id do remetente
-                writers[i].write(Integer.toString(id) + "\n"); // Enviar o ack
-                
-                writers[i].flush();
-            }   
-        }
+        // Handle message writing
+        handleMessageWriting();
     }
     
+    private static void handleMessageWriting() throws IOException {
+        while (true) {
+            // Read user input message
+            synchronized (System.out) {
+                System.out.print("Mensagem a enviar: ");
+            }
+            String text = scanner.next();
+            
+            // Multicast the message
+            node.multicastTextMessage(text);
+        }
+    }
 }

@@ -6,11 +6,7 @@
 
 package multicastordenado;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.logging.Level;
@@ -21,19 +17,19 @@ import java.util.logging.Logger;
  * @author Renato Correa
  */
 public class ServerThread extends Thread {
-    public ServerThread(int id) {
-        this.id = id;
+    public ServerThread(Node node) {
+        this.node = node;
     }
     
     @Override
     public void run() {
         try {
-            ServerSocket serverSocket = new ServerSocket(3031 + this.id);
+            ServerSocket serverSocket = new ServerSocket(3031 + node.getId());
             
             while (this.isAlive()) {
                 Socket clientSocket = serverSocket.accept();
                 
-                ConnectedClientThread clientThread = new ConnectedClientThread(clientSocket, this.writers);
+                ServerConnectionThread clientThread = new ServerConnectionThread(clientSocket, node);
                 clientThread.start();
             }
         } catch (IOException ex) {
@@ -41,6 +37,5 @@ public class ServerThread extends Thread {
         }
     }
     
-    private final int id;
-    public BufferedWriter[] writers;
+    private final Node node;
 }
