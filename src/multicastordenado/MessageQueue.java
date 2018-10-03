@@ -9,28 +9,23 @@ import java.util.HashMap;
 import java.util.PriorityQueue;
 
 class MessageInfo {
-    private String text;
+    private final Message message;
     private int numAcks;
 
-    public MessageInfo() {
-        this.text = null;
+    public MessageInfo(MessageId messageId) {
+        this.message = new Message(messageId);
         this.numAcks = 0;
-    }
-
-    public String getText() {
-        return text;
-    }
-
-    public void setText(String text) {
-        this.text = text;
     }
 
     public int getNumAcks() {
         return numAcks;
     }
-
     public void incrementNumAcks() {
         ++this.numAcks;
+    }
+
+    public Message getMessage() {
+        return message;
     }
 }
 
@@ -43,14 +38,20 @@ public class MessageQueue {
         messageQueue = new PriorityQueue<>();
     }
     
+    private MessageInfo insertMessage(MessageId messageId) {
+        MessageInfo messageInfo = new MessageInfo(messageId);
+        
+        messageMap.put(messageId, messageInfo);
+        messageQueue.add(messageId);
+        
+        return messageInfo;
+    }
+    
     public synchronized void incrementMessageAcks(MessageId messageId) {
         MessageInfo messageInfo = messageMap.get(messageId);
         
-        if (messageInfo == null) {
-            messageInfo = new MessageInfo();
-            messageMap.put(messageId, messageInfo);
-            messageQueue.add(messageId);
-        }
+        if (messageInfo == null)
+            messageInfo = insertMessage(messageId);
         
         messageInfo.incrementNumAcks();
     }
@@ -58,25 +59,26 @@ public class MessageQueue {
     public synchronized void setMessageText(MessageId messageId, String text) {
         MessageInfo messageInfo = messageMap.get(messageId);
         
-        if (messageInfo == null) {
-            messageInfo = new MessageInfo();
-            messageMap.put(messageId, messageInfo);
-            messageQueue.add(messageId);
-        }
+        if (messageInfo == null)
+            messageInfo = insertMessage(messageId);
         
-        messageInfo.setText(text);
+        messageInfo.getMessage().setText(text);
     }
     
-    public synchronized boolean isTopMessageReady() {
-        MessageInfo messageInfo = messageMap.get(messageQueue.peek());
+    public synchronized Message tryDeliveringMessage() {
+        if (messageQueue.isEmpty())
+            return null;
         
-        return messageInfo.getText() != null &&
-            messageInfo.getNumAcks() == Node.NUM_PROCESSES;
-    }
-    
-    public synchronized String popMessage() {
-        MessageId messageId = messageQueue.remove();
-        MessageInfo messageInfo = messageMap.remove(messageId);
-        return messageInfo.getText();
+        MessageId messageId = messageQueue.peek();
+        MessageInfo messageInfo = messageMap.get(messageId);
+        
+        if (messageInfo.getMessage().getText() == null ||
+            messageInfo.getNumAcks() < Node.NUM_NODES)
+            return null;
+        
+        messageQueue.remove();
+        messageMap.remove(messageId);
+        
+        return messageInfo.getMessage();
     }
 }

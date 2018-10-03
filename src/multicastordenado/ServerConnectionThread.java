@@ -27,32 +27,43 @@ public class ServerConnectionThread extends Thread {
     
     private void receiveMessage() throws IOException {
         // Receive message
-        int clock = Integer.parseInt(bufferedReader.readLine()); // Receber tempo
-        int id = Integer.parseInt(bufferedReader.readLine()); // Receber id
-        boolean isAck = Boolean.parseBoolean(bufferedReader.readLine()); // Receber ack
+        int clock = Integer.parseInt(bufferedReader.readLine());
+        int nodeId = Integer.parseInt(bufferedReader.readLine());
         
-        MessageId messageId = new MessageId(clock, id);
+        // Update node clock
         node.updateClock(clock);
+        
+        boolean isAck = Boolean.parseBoolean(bufferedReader.readLine());
 
         if (!isAck) {
+            // Create message id
+            MessageId messageId = new MessageId(clock, nodeId);
+            
             // Receive and save message text
             String text = bufferedReader.readLine();
             node.getMessageQueue().setMessageText(messageId, text);
 
-            // Send acks to all other nodes
+            // Send acks to all nodes
             node.multicastAckMessage(messageId);
         } else {
+            // Acknowledged message informations
+            int messageClock = Integer.parseInt(bufferedReader.readLine());
+            int messageNodeId = Integer.parseInt(bufferedReader.readLine());
+            
+            // Create message id
+            MessageId messageId = new MessageId(messageClock, messageNodeId);
+            
             // Increment message acks
             node.getMessageQueue().incrementMessageAcks(messageId);
         }
 
-        if (node.getMessageQueue().isTopMessageReady()) {
-            String text = node.getMessageQueue().popMessage();
-            
-            synchronized (System.out) {
-                System.out.print("Mensagem recebida: " + text);
-            }
-        }
+        // Try to deliver the message
+        Message message = node.getMessageQueue().tryDeliveringMessage();
+        if (message == null)
+            return;
+
+        // Print the delivered message
+        System.out.print("Mensagem de " + message.getId().getNodeId() + ": " + message.getText() + "\n");
     }
     
     @Override

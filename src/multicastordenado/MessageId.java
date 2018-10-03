@@ -11,11 +11,11 @@ package multicastordenado;
  */
 public class MessageId implements Comparable<MessageId> {
     private int clock;
-    private int id;
+    private int nodeId;
     
-    MessageId(int clock, int id) {
+    MessageId(int clock, int nodeId) {
         this.clock = clock;
-        this.id = id;
+        this.nodeId = nodeId;
     }
 
     public int getClock() {
@@ -26,12 +26,12 @@ public class MessageId implements Comparable<MessageId> {
         this.clock = clock;
     }
 
-    public int getId() {
-        return id;
+    public int getNodeId() {
+        return nodeId;
     }
 
-    public void setId(int id) {
-        this.id = id;
+    public void setNodeId(int nodeId) {
+        this.nodeId = nodeId;
     }
     
     // Sorting (For the priority queue)
@@ -42,7 +42,7 @@ public class MessageId implements Comparable<MessageId> {
         if (clockComp != 0)
             return clockComp;
         
-        return Integer.compare(this.id, o.id);
+        return Integer.compare(this.nodeId, o.nodeId);
     }
     
     // Hashing (For the HashMap)
@@ -51,7 +51,7 @@ public class MessageId implements Comparable<MessageId> {
     public int hashCode() {
         int hash = 5;
         hash = 67 * hash + this.clock;
-        hash = 67 * hash + this.id;
+        hash = 67 * hash + this.nodeId;
         return hash;
     }
     
@@ -72,7 +72,7 @@ public class MessageId implements Comparable<MessageId> {
         if (this.clock != other.clock) {
             return false;
         }
-        if (this.id != other.id) {
+        if (this.nodeId != other.nodeId) {
             return false;
         }
         return true;

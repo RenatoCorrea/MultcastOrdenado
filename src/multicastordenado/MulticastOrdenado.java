@@ -13,9 +13,6 @@ import java.util.Scanner;
  * @author Renato Correa
  */
 public class MulticastOrdenado {
-    private static Scanner scanner;
-    private static Node node;
-
     /**
      * @param args the command line arguments
      * @throws java.io.IOException
@@ -23,37 +20,31 @@ public class MulticastOrdenado {
     public static void main(String[] args) throws IOException {
         // Read node id
         System.out.print("Id: ");
-        scanner = new Scanner(System.in);
+        Scanner scanner = new Scanner(System.in);
         int id = scanner.nextInt();
+        scanner.nextLine();
         
         // Initialize node
-        node = new Node(id);
+        Node node = new Node(id);
         
         // Initialize server first
         node.initializeServer();
         
         // Wait for all servers to be initialized
         System.out.println("Esperando inicialização dos servidores.");
-        System.out.print("Digite qualquer número para continuar: ");
-        scanner.nextInt();
+        System.out.print("Digite enter para continuar.");
+        scanner.nextLine();
         
-        // Initialize clients
+        // Initialize clients later
         node.initializeClients();
         
         // Handle message writing
-        handleMessageWriting();
-    }
-    
-    private static void handleMessageWriting() throws IOException {
         while (true) {
             // Read user input message
-            synchronized (System.out) {
-                System.out.print("Mensagem a enviar: ");
-            }
-            String text = scanner.next();
+            String messageText = scanner.nextLine();
             
             // Multicast the message
-            node.multicastTextMessage(text);
+            node.multicastTextMessage(messageText);
         }
     }
 }

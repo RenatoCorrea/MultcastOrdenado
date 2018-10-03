@@ -15,7 +15,7 @@ import java.net.Socket;
  * @author Gustavo
  */
 public class Node {
-    public static final int NUM_PROCESSES = 3;
+    public static final int NUM_NODES = 3;
     
     // Node informations
     private int clock;
@@ -39,27 +39,29 @@ public class Node {
     }
     
     public void initializeClients() throws IOException {
-        // Initialize client sockets
-        Socket[] sockets = new Socket[NUM_PROCESSES];
-        for (int i = 0; i < NUM_PROCESSES; ++i)
+        Socket[] sockets = new Socket[NUM_NODES];
+        for (int i = 0; i < NUM_NODES; ++i)
             sockets[i] = new Socket("localhost", 3031 + i);
         
-        OutputStreamWriter[] streams = new OutputStreamWriter[NUM_PROCESSES];
-        for (int i = 0; i < NUM_PROCESSES; ++i)
+        OutputStreamWriter[] streams = new OutputStreamWriter[NUM_NODES];
+        for (int i = 0; i < NUM_NODES; ++i)
             streams[i] = new OutputStreamWriter(sockets[i].getOutputStream());
         
-        writers = new BufferedWriter[NUM_PROCESSES];
-        for (int i = 0; i < NUM_PROCESSES; ++i)
+        writers = new BufferedWriter[NUM_NODES];
+        for (int i = 0; i < NUM_NODES; ++i)
             writers[i] = new BufferedWriter(streams[i]);
     }
     
-    public synchronized void multicastTextMessage(String text) throws IOException {
-        for (int i = 0; i < NUM_PROCESSES; ++i) {
+    public void multicastTextMessage(String text) throws IOException {
+        for (int i = 0; i < NUM_NODES; ++i) {
             // Write message
-            writers[i].write(Integer.toString(clock) + "\n"); // Enviar o tempo
-            writers[i].write(Integer.toString(id) + "\n"); // Enviar o id do remetente
-            writers[i].write(Boolean.toString(false) + "\n"); // Enviar o ack
-            writers[i].write(text + "\n"); // Enviar o texto
+            // - Message identification
+            writers[i].write(Integer.toString(clock) + "\n"); // Clock
+            writers[i].write(Integer.toString(id) + "\n"); // Node id
+            // - Message ack flag
+            writers[i].write(Boolean.toString(false) + "\n"); // Ack flag
+            // - Message text
+            writers[i].write(text + "\n"); // Message text
 
             // Flush output stream
             writers[i].flush();
@@ -70,11 +72,16 @@ public class Node {
     }
     
     public synchronized void multicastAckMessage(MessageId messageId) throws IOException {
-        for (int i = 0; i < NUM_PROCESSES; ++i) {
+        for (int i = 0; i < NUM_NODES; ++i) {
             // Write message
-            writers[i].write(messageId.getClock() + "\n"); // Enviar o tempo
-            writers[i].write(messageId.getId() + "\n"); // Enviar o id do remetente
-            writers[i].write(Boolean.toString(true) + "\n"); // Enviar o ack
+            // - Message identification
+            writers[i].write(Integer.toString(clock) + "\n"); // Clock
+            writers[i].write(Integer.toString(id) + "\n"); // Node id
+            // - Message ack flag
+            writers[i].write(Boolean.toString(true) + "\n"); // Ack flag
+            // - Acked message identification
+            writers[i].write(messageId.getClock() + "\n"); // Message clock
+            writers[i].write(messageId.getNodeId() + "\n"); // Message node id
 
             // Flush output stream
             writers[i].flush();
@@ -84,7 +91,7 @@ public class Node {
         ++clock;
     }
     
-    public void updateClock(int receivedClock) {
+    public synchronized void updateClock(int receivedClock) {
         clock = Integer.max(clock, receivedClock) + 1;
     }
 
