@@ -52,7 +52,7 @@ public class Node {
             writers[i] = new BufferedWriter(streams[i]);
     }
     
-    public void multicastTextMessage(String text) throws IOException {
+    public synchronized void multicastTextMessage(String text) throws IOException {
         for (int i = 0; i < NUM_NODES; ++i) {
             // Write message
             // - Message identification

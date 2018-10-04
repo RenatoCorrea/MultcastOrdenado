@@ -18,6 +18,8 @@ import java.util.logging.Logger;
  * @author Renato Correa
  */
 public class ServerConnectionThread extends Thread {
+    private static final Object printLock = new Object();
+    
     private BufferedReader bufferedReader;
             
     public ServerConnectionThread(Socket socket, Node node) {
@@ -34,7 +36,7 @@ public class ServerConnectionThread extends Thread {
         node.updateClock(clock);
         
         boolean isAck = Boolean.parseBoolean(bufferedReader.readLine());
-
+        
         if (!isAck) {
             // Create message id
             MessageId messageId = new MessageId(clock, nodeId);
@@ -43,8 +45,13 @@ public class ServerConnectionThread extends Thread {
             String text = bufferedReader.readLine();
             node.getMessageQueue().setMessageText(messageId, text);
 
-            // Send acks to all nodes
-            node.multicastAckMessage(messageId);
+            synchronized (printLock) {
+                // Send acks to all nodes
+                node.multicastAckMessage(messageId);
+        
+                // Print message queue
+                node.getMessageQueue().print();
+            }
         } else {
             // Acknowledged message informations
             int messageClock = Integer.parseInt(bufferedReader.readLine());
@@ -53,17 +60,26 @@ public class ServerConnectionThread extends Thread {
             // Create message id
             MessageId messageId = new MessageId(messageClock, messageNodeId);
             
-            // Increment message acks
-            node.getMessageQueue().incrementMessageAcks(messageId);
+            synchronized (printLock) {
+                // Increment message acks
+                node.getMessageQueue().incrementMessageAcks(messageId);
+        
+                // Print message queue
+                node.getMessageQueue().print();
+            }
         }
 
         // Try to deliver the message
-        Message message = node.getMessageQueue().tryDeliveringMessage();
-        if (message == null)
-            return;
+        while (true) {
+            Message message = node.getMessageQueue().tryDeliveringMessage();
+            if (message == null)
+                break;
 
-        // Print the delivered message
-        System.out.print("Mensagem de " + message.getId().getNodeId() + ": " + message.getText() + "\n");
+            // Print the delivered message
+            synchronized (System.out) {
+                System.out.print("Mensagem de " + message.getId().getNodeId() + ": " + message.getText() + "\n");
+            }
+        }
     }
     
     @Override

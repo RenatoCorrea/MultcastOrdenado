@@ -31,7 +31,7 @@ class MessageInfo {
 
 public class MessageQueue {
     private final HashMap<MessageId, MessageInfo> messageMap;
-    private final PriorityQueue<MessageId> messageQueue;
+    private PriorityQueue<MessageId> messageQueue;
     
     MessageQueue() {
         messageMap = new HashMap<>();
@@ -80,5 +80,30 @@ public class MessageQueue {
         messageMap.remove(messageId);
         
         return messageInfo.getMessage();
+    }
+    
+    public synchronized void print() {
+        PriorityQueue<MessageId> newMessageQueue = new PriorityQueue<>();
+        
+        synchronized (System.out) {
+            System.out.print("Message queue: ");
+        }
+        
+        while (!messageQueue.isEmpty()) {
+            MessageId messageId = messageQueue.remove();
+            newMessageQueue.add(messageId);
+            MessageInfo messageInfo = messageMap.get(messageId);
+            
+            synchronized (System.out) {
+                System.out.print("(" + messageId.getClock() + ", " +
+                    messageId.getNodeId() + ": " + messageInfo.getNumAcks() + ") ");
+            }
+        }
+        
+        synchronized (System.out) {
+            System.out.println();
+        }
+        
+        messageQueue = newMessageQueue;
     }
 }
